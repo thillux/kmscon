@@ -33,6 +33,8 @@
 uniform mat4 projection;
 uniform float cos;
 uniform float sin;
+uniform float advance_htex;
+uniform float advance_vtex;
 
 attribute vec2 position;
 attribute vec2 texture_position;
@@ -52,7 +54,9 @@ void main()
 {
 	vec2 rotatedPosition = opRotate(position);
 	gl_Position = projection * vec4(rotatedPosition, 0.0, 1.0);
-	texpos = texture_position;
+	// texture_position is in glyph cells and goes up to the number of glyphs
+	// per atlas. Scale it to atlas coordinates here, where float is highp.
+	texpos = vec2(texture_position.x * advance_htex, texture_position.y * advance_vtex);
 	fgcol = fgcolor;
 	bgcol = bgcolor;
 }

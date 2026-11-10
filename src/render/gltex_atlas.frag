@@ -33,17 +33,20 @@
 precision mediump float;
 
 uniform sampler2D atlas;
-uniform float advance_htex;
-uniform float advance_vtex;
 
+// mediump may be fp16, which is not precise enough to address single texels
+// in a 2048 pixel wide atlas, so use highp for the texture coordinate.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+varying highp vec2 texpos;
+#else
 varying vec2 texpos;
+#endif
 varying vec3 fgcol;
 varying vec3 bgcol;
 
 void main()
 {
-	vec2 pos = vec2(texpos.x * advance_htex, texpos.y * advance_vtex);
-	float alpha = texture2D(atlas, pos).a;
+	float alpha = texture2D(atlas, texpos).a;
 	vec3 val = alpha * fgcol + (1.0 - alpha) * bgcol;
 	gl_FragColor = vec4(val, 1.0);
 }
