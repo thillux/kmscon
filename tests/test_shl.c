@@ -23,6 +23,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "shl/dlist.h"
 #include "shl/misc.h"
 #include "test_common.h"
 
@@ -165,8 +166,40 @@ START_TEST(test_split_command_string)
 }
 END_TEST
 
+struct dlist_test_entry {
+	int value;
+	struct dlist list;
+};
+
+START_TEST(test_dlist_first_last)
+{
+	struct dlist head;
+	struct dlist_test_entry a = {.value = 1}, b = {.value = 2};
+
+	dlist_init(&head);
+
+	/* empty list must yield NULL, not a pointer computed from the head */
+	ck_assert_ptr_eq(dlist_first(&head, struct dlist_test_entry, list), NULL);
+	ck_assert_ptr_eq(dlist_last(&head, struct dlist_test_entry, list), NULL);
+
+	dlist_link(&head, &a.list);
+	ck_assert_ptr_eq(dlist_first(&head, struct dlist_test_entry, list), &a);
+	ck_assert_ptr_eq(dlist_last(&head, struct dlist_test_entry, list), &a);
+
+	dlist_link(&head, &b.list);
+	ck_assert_ptr_eq(dlist_first(&head, struct dlist_test_entry, list), &b);
+	ck_assert_ptr_eq(dlist_last(&head, struct dlist_test_entry, list), &a);
+
+	dlist_unlink(&b.list);
+	dlist_unlink(&a.list);
+	ck_assert_ptr_eq(dlist_first(&head, struct dlist_test_entry, list), NULL);
+	ck_assert_ptr_eq(dlist_last(&head, struct dlist_test_entry, list), NULL);
+}
+END_TEST
+
 TEST_DEFINE_CASE(misc)
 TEST(test_split_command_string)
+TEST(test_dlist_first_last)
 TEST_END_CASE
 
 TEST_DEFINE(TEST_SUITE(shl, TEST_CASE(misc), TEST_END))
