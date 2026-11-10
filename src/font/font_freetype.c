@@ -262,6 +262,30 @@ static FcBool _fc_monospace_font_filter_func(const FcPattern *pat, void *user_da
 	return FcFalse;
 }
 
+/*
+ * Load a private fontconfig configuration that only contains monospace fonts.
+ *
+ * Don't install the filter on the global current configuration: with an
+ * unchanged filter, FcConfigSetFontSetFilter(NULL, ...) re-initializes the
+ * current configuration and drops references to it until it is freed, even
+ * though fonts that are still alive hold references to it (seen with
+ * fontconfig 2.18). Destroying such a font later frees it a second time and
+ * corrupts the heap. This happens as soon as two fonts are alive at the same
+ * time, e.g. when zooming with several monitors in "scaled" mode.
+ */
+static FcConfig *load_monospace_config(void)
+{
+	/* parses the configuration, but doesn't load any fonts yet */
+	FcConfig *config = FcInitLoadConfig();
+
+	if (!config)
+		return NULL;
+
+	/* installs the filter and builds the (filtered) font set */
+	FcConfigSetFontSetFilter(config, _fc_monospace_font_filter_func, NULL, NULL);
+	return config;
+}
+
 static int kmscon_font_freetype_init(struct kmscon_font *out, const char *name, unsigned int height)
 {
 	struct ft_data *ftf;
@@ -277,8 +301,7 @@ static int kmscon_font_freetype_init(struct kmscon_font *out, const char *name, 
 		log_err("Failed to initialize FreeType\n");
 		goto err_free;
 	}
-	FcConfigSetFontSetFilter(NULL, _fc_monospace_font_filter_func, NULL, NULL);
-	ftf->mono = FcConfigReference(FcConfigGetCurrent());
+	ftf->mono = load_monospace_config();
 	ftf->fallback = FcInitLoadConfigAndFonts();
 	if (!ftf->mono || !ftf->fallback) {
 		log_err("Failed to load fontconfig configuration\n");
